@@ -34,6 +34,16 @@
             (wyrm.write-binary test-blob-file (string->wyrm.blob "Hello World"))
             (wyrm.blob->string (wyrm.read-binary test-blob-file))
         ))
+    (test "Copy in" "Hello"
+        (begin
+            (define buf (string->wyrm.blob "H3l1o"))
+            (wyrm.blob-copy-in! buf 0 (string->wyrm.blob "Hell"))
+            (wyrm.blob->string buf)
+        ))
+    (test "Append Values" "Hello World"
+        (wyrm.blob->string (wyrm.blob-append (string->wyrm.blob "Hello ")
+                                             (string->wyrm.blob "World")))
+        )
     (test-assert "Get/Set Byte at Offsets"
         (let ((test_vec (wyrm.blob-new 4)))
             (begin

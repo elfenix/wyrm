@@ -24,6 +24,23 @@
     (define thiz_u8 (blob->u8vector/shared thiz_blob))
     (_wyrm.blob-make thiz_blob thiz_u8))
 
+(define (wyrm.blob-copy-in! self offset other #!optional (start 0) (count 0))
+    (if (and (< start (wyrm.blob-size other)) (< offset (wyrm.blob-size self)))
+        (begin
+            (wyrm.blob-pokeb! self offset (wyrm.blob-peekb other start))
+            (wyrm.blob-copy-in! self (+ offset 1) other (+ start 1) (+ count 1)))
+        count
+    ))
+
+(define (wyrm.blob-append self other)
+    (define total_size (+ (wyrm.blob-size self) (wyrm.blob-size other)))
+    (define rblob (wyrm.blob-new total_size))
+    (begin
+        (wyrm.blob-copy-in! rblob 0 self)
+        (wyrm.blob-copy-in! rblob (wyrm.blob-size self) other)
+        rblob
+    ))
+
 (define (string->wyrm.blob str)
     (define thiz_blob (string->blob str))
     (define thiz_u8 (blob->u8vector/shared thiz_blob))
