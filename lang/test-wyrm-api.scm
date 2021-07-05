@@ -3,8 +3,46 @@
 ; Some constants
 (define ascii-A 65)
 
+; Basic Operators
+(test-group "Bitwise Operators"
+    (test "Bitwise And" #x8 (%_wrt.and #xff #x0f #x08))
+    (test "Filtered Not" #xf0 (%_wrt.and #xf0 (%_wrt.not #x0f)))
+    (test "Shift Left" #x02 (%_wrt.shift #x1 1))
+    (test "Shift Right" #x01 (%_wrt.shift #x2 -1))
+)
+
 ; Blob API Test
 (test-group "Blob API"
+    (test-error "Throwing Exception" (wyrm.abort "Forced Error"))
+
+    (test-error "Invalid Component Type" (%wyrm.blob-component-sz 'UseQuotedSymbolAsNoSize))
+    (test "Single Char Component Size" 1 (%wyrm.blob-component-sz #x22))
+    (test-error "Invalid List Component Size" (%wyrm.blob-component-list-sz 'NotAList))
+    (test "Component List Size 1" 1 (%wyrm.blob-component-list-sz '(1)))
+    (test "Component List Size 2" 2 (%wyrm.blob-component-list-sz '(1 2)))
+    (test "Component Size List" 2 (%wyrm.blob-component-sz '(1 1)))
+    (test "Component Size Blob" 16 (%wyrm.blob-component-sz (wyrm.blob-new 16)))
+    (test "Component Size Str" 2 (%wyrm.blob-component-sz "AA"))
+    (test "Component Size Recursed Blob" 16 (%wyrm.blob-component-sz (list (wyrm.blob-new 16))))
+
+    (test "Create Flattened Blob Size" 16 (wyrm.blob-size (wyrm.blob-flatten (wyrm.blob-new 8) (wyrm.blob-new 8))))
+
+    (test "Copy in Single Char" 1 (%wyrm.blob-component-in! (wyrm.blob-new 1) ascii-A 0))
+    (test "Copy in String" 1 (%wyrm.blob-component-in! (wyrm.blob-new 1) "A" 0))
+    (test "Copy in Blob" 2 (%wyrm.blob-component-in! (wyrm.blob-new 2) (string->wyrm.blob "AA") 0))
+    (test "Copy in Blob Partial" 1 (%wyrm.blob-component-in! (wyrm.blob-new 1) (string->wyrm.blob "AA") 0))
+    (test "Copy in Blob Empty" 0 (%wyrm.blob-component-in! (wyrm.blob-new 1) (string->wyrm.blob "") 0))
+    (test-error "Flatten bad input" (%wyrm.blob-flatten-in! (wyrm.blob-new 1) 'NotAList 0))
+    (test "Copy in Single Char Recurse" 1 (%wyrm.blob-flatten-in! (wyrm.blob-new 1) (list ascii-A) 0))
+    (test "Copy in Blob Recurse" 16 (%wyrm.blob-flatten-in! (wyrm.blob-new 16) (list (wyrm.blob-new 8) (wyrm.blob-new 8)) 0))
+    (test "Copy in Single Char Recurse^2" 1 (%wyrm.blob-flatten-in! (wyrm.blob-new 1) (list (list ascii-A)) 0))
+
+    (test "Blob Flatten Simple" "A" (wyrm.blob->string (wyrm.blob-flatten ascii-A)))
+    (test "Blob Flatten Simple x2" "AA" (wyrm.blob->string (wyrm.blob-flatten ascii-A ascii-A)))
+    (test "Blob Flatten Simple x2" "AA" (wyrm.blob->string (wyrm.blob-flatten ascii-A ascii-A)))
+    (test "Blob Flatten Hello World" "A Hello A World"
+        (wyrm.blob->string (wyrm.blob-flatten ascii-A " Hello " (list ascii-A (list " ") (string->wyrm.blob "World")))))
+
     (test-assert "Internal blob create works" (_wyrm.blob? (_wyrm.blob-make #f #f)))
     (test-assert "Public API blob create" (wyrm.blob? (wyrm.blob-new 32)))
     (test "Blob size matches" 32 (wyrm.blob-size (wyrm.blob-new 32)))

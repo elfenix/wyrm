@@ -2,8 +2,9 @@
 
 (import (chicken blob))
 (import (chicken io))
+(import (chicken condition))
+(import (chicken bitwise))
 (import (srfi-4))
-
 
 ;;; Portabe language primitives
 (define wyrm.runtime 'csi)
@@ -12,6 +13,10 @@
     (syntax-rules ()
         ((_ impl_file)
             (load-relative impl_file))))
+
+(define (wyrm.abort obj)
+    (abort obj))
+
 
 
 
@@ -41,6 +46,58 @@
         (define thiz_blob (wyrm.blob-new (length T)))
         (wyrm.blob-set-list! thiz_blob 0 T)
         thiz_blob))
+
+(define (%wyrm.blob-component-sz comp)
+    (cond
+        ((wyrm.blob? comp) (wyrm.blob-size comp))
+        ((list? comp) (%wyrm.blob-component-list-sz comp))
+        ((string? comp) (string-length comp))
+        ((integer? comp) 1)
+        (#t (wyrm.abort "Unknown Component Type"))))
+
+(define (%wyrm.blob-component-list-sz ll)
+    (if (pair? ll)
+        (+ (%wyrm.blob-component-sz (car ll)) (%wyrm.blob-component-list-sz (cdr ll)))
+        (if (list? ll)
+            0
+            (wyrm.abort "Unexpected Type in Component list Size"))))
+
+(define (wyrm.blob-flatten . T)
+    (define blob-sz (%wyrm.blob-component-list-sz T))
+    (define thiz_blob (wyrm.blob-new blob-sz))
+    (%wyrm.blob-flatten-in! thiz_blob T 0)
+    thiz_blob)
+
+(define (%wyrm.blob-component-in! self component offset)
+    (cond
+        ((wyrm.blob? component) (wyrm.blob-copy-in! self offset component))
+        ((list? component) (%wyrm.blob-flatten-in! self component offset))
+        ((string? component) (%wyrm.blob-component-in! self (string->wyrm.blob component) offset))
+        ((integer? component) (begin
+            (wyrm.blob-pokeb! self offset component)
+            1))
+        (#t (wyrm.abort "Unexpected Type in Component In"))
+    ))
+
+(define (%wyrm.blob-flatten-in! self ll offset)
+    (if (pair? ll)
+        (let ((this_size (%wyrm.blob-component-in! self (car ll) offset)))
+            (+ this_size (%wyrm.blob-flatten-in! self (cdr ll) (+ offset this_size))))
+        (if (list? ll)
+            0
+            (wyrm.abort "Unexpected Type in Blob Input Flatten"))))
+
+
+
+
+;(define (%wyrm.blob-flatten-in! self ll offset)
+    ;( (%wyrm.blob-component-in self ll offset))
+  
+    
+
+;(define (wyrm.blob-flatten-in! self . ll)
+    ;(%wyrm.blob-flatten-in! self ll 0))
+
 
 (define (wyrm.blob-copy-in! self offset other #!optional (start 0) (count 0))
     (if (and (< start (wyrm.blob-size other)) (< offset (wyrm.blob-size self)))
@@ -127,5 +184,11 @@
     ))
 
 
+;;; ---------------------------------------------------------------------------
+;;; Runtime Functions
+;;; ---------------------------------------------------------------------------
 
+(define %_wrt.and bitwise-and)
+(define %_wrt.not bitwise-not)
+(define %_wrt.shift arithmetic-shift)
 

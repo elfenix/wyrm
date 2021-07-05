@@ -10,6 +10,16 @@
 ;;; File Header / Magic
 ;;; ---------------------------------------------------------------------------
 
+(define (rt-elf.u8 n) (%_wrt.and n 255))
+(define (rt-elf.u16 n) `(,(rt-elf.u8 n) ,(rt-elf.u8 (%_wrt.shift n -8))))
+(define (rt-elf.u32 n) (append (rt-elf.u16 n) (rt-elf.u16 (%_wrt.shift n -16))))
+(define (rt-elf.u64 n) (append (rt-elf.u32 n) (rt-elf.u32 (%_wrt.shift n -32))))
+
+(define rt-elf.elf64-half rt-elf.u16)
+(define rt-elf.elf64-word rt-elf.u32)
+(define rt-elf.elf64-addr rt-elf.u64)
+(define rt-elf.elf64-off rt-elf.u64)
+
 ; Object file classes, elf-header-ident class
 (define rt-elf.CLASS_NONE   0)
 (define rt-elf.CLASS_32     1)
