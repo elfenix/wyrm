@@ -11,6 +11,15 @@
     (test "Shift Right" #x01 (%_wrt.shift #x2 -1))
 )
 
+; MiniScheme Elf API
+(test-group "Dictionary API"
+    (test-assert "Create new dictionary" (wyrm.dict? (wyrm.dict-new '((my-key #f)))))
+    (test-assert "Create empty dictionary" (wyrm.dict? (wyrm.dict-new)))
+    (test "Get dictionary item" 42 (wyrm.dict-get (wyrm.dict-new '(my-key . 42)) 'my-key))
+    (test "Get set dict item" 42 (wyrm.dict-get (wyrm.dict-set (wyrm.dict-new) 'my-key 42) 'my-key))
+    (test "Get reset dict item" 43 (wyrm.dict-get (wyrm.dict-set (wyrm.dict-new '(my-key 42)) 'my-key 43) 'my-key))
+)
+
 ; Blob API Test
 (test-group "Blob API"
     (test-error "Throwing Exception" (wyrm.abort "Forced Error"))

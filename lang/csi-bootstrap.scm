@@ -5,6 +5,7 @@
 (import (chicken condition))
 (import (chicken bitwise))
 (import (srfi-4))
+(import (srfi-1))
 
 ;;; Portabe language primitives
 (define wyrm.runtime 'csi)
@@ -17,8 +18,26 @@
 (define (wyrm.abort obj)
     (abort obj))
 
+;;; Dictionary API
+;;;     wyrm.dict
+;;;       - -new . Key Values: Construct new dictionary
+;;;       - ?: Determine if item is dictionary
+;;;       - -get key (default): Get key value or return default
+;;;       - -set key value: Return new dictionary with key set to value
+(define (wyrm.dict-new . key_values)
+  `(wyrm.dict . ,key_values))
 
+(define (wyrm.dict? self)
+  (eq? (car self) 'wyrm.dict))
 
+(define (wyrm.dict-get self key #!optional (default #f))
+  (let ((key_pair (assoc key (cdr self))))
+    (if key_pair
+        (cdr key_pair)
+        default)))
+
+(define (wyrm.dict-set self key value)
+  `(wyrm.dict . ,(cons `(,key . ,value) (cdr self))))
 
 ;;; Blob API
 ;;;     wyrm.blob
@@ -86,18 +105,6 @@
         (if (list? ll)
             0
             (wyrm.abort "Unexpected Type in Blob Input Flatten"))))
-
-
-
-
-;(define (%wyrm.blob-flatten-in! self ll offset)
-    ;( (%wyrm.blob-component-in self ll offset))
-  
-    
-
-;(define (wyrm.blob-flatten-in! self . ll)
-    ;(%wyrm.blob-flatten-in! self ll 0))
-
 
 (define (wyrm.blob-copy-in! self offset other #!optional (start 0) (count 0))
     (if (and (< start (wyrm.blob-size other)) (< offset (wyrm.blob-size self)))
