@@ -18,6 +18,9 @@
     (test "Get dictionary item" 42 (wyrm.dict-get (wyrm.dict-new '(my-key . 42)) 'my-key))
     (test "Get set dict item" 42 (wyrm.dict-get (wyrm.dict-set (wyrm.dict-new) 'my-key 42) 'my-key))
     (test "Get reset dict item" 43 (wyrm.dict-get (wyrm.dict-set (wyrm.dict-new '(my-key 42)) 'my-key 43) 'my-key))
+    (test "Dictionary update single" 42 (wyrm.dict-get (wyrm.dict-update (wyrm.dict-new) '((my-key . 42))) 'my-key))
+    (test "Dictionary update first" 42 (wyrm.dict-get (wyrm.dict-update (wyrm.dict-new) '((my-key . 42) (my-key2 . 43))) 'my-key))
+    (test "Dictionary update second" 43 (wyrm.dict-get (wyrm.dict-update (wyrm.dict-new) '((my-key . 42) (my-key2 . 43))) 'my-key2))
 )
 
 ; Blob API Test
@@ -109,4 +112,100 @@
         ))
     (test "Construct List" "AAA" 
         (wyrm.blob->string (wyrm.blob ascii-A ascii-A ascii-A)))
+)
+
+
+
+
+(define test-encode-dict0 (wyrm.dict-new '(a . 42)))
+(define test-encode-dict0-encoding '())
+
+(define test-encode-dict1 (wyrm.dict-new '(a . 42)))
+(define test-encode-dict1-encoding `((,wyrm.encode-u8 . a)))
+
+(define test-encode-dict2 (wyrm.dict-new '(a . 42) '(b . #xff)))
+(define test-encode-dict2-encoding `((u8 . a)
+                                     (u16 . b)))
+
+
+(define test-encode-dict3 (wyrm.dict-new `(sub . ,test-encode-dict1)))
+(define test-encode-dict3-encoding `(((substruct . ,test-encode-dict1-encoding) . sub)))
+
+(test-group "Mini-Scheme Binary Encoding"
+    (test-assert "Intel Byte Order U8 Encode"
+        (wyrm.blob-eq?
+            (wyrm.blob-flatten (wyrm.u8 #x12))
+            (wyrm.blob-flatten #x12)
+        ))
+
+    (test-assert "Intel Byte Order U16 Encode"
+        (wyrm.blob-eq?
+            (wyrm.blob-flatten (wyrm.u16 #x1234))
+            (wyrm.blob-flatten #x34 #x12)
+        ))
+
+    (test-assert "Intel Byte Order U32 Encode"
+        (wyrm.blob-eq?
+            (wyrm.blob-flatten (wyrm.u32 #x12345678))
+            (wyrm.blob-flatten #x78 #x56 #x34 #x12)
+        ))
+
+    (test-assert "Intel Byte Order U64 Encode"
+        (wyrm.blob-eq?
+            (wyrm.blob-flatten (wyrm.u64 #x12345678aabbccdd))
+            (wyrm.blob-flatten #xdd #xcc #xbb #xaa #x78 #x56 #x34 #x12)
+        ))
+
+    (test-assert "U8 Encode Method"
+        (wyrm.blob-eq?
+            (wyrm.encode-u8 #x12)
+            (wyrm.blob-flatten #x12)
+        ))
+
+    (test-assert "U16 Encode Method"
+        (wyrm.blob-eq?
+            (wyrm.encode-u16 #x1234)
+            (wyrm.blob-flatten #x34 #x12)
+        ))
+
+    (test-assert "U32 Encode Method"
+        (wyrm.blob-eq?
+            (wyrm.encode-u32 #x12345678)
+            (wyrm.blob-flatten #x78 #x56 #x34 #x12)
+        ))
+
+    (test-assert "U64 Encode Method"
+        (wyrm.blob-eq?
+            (wyrm.encode-u64 #x12345678aabbccdd)
+            (wyrm.blob-flatten #xdd #xcc #xbb #xaa #x78 #x56 #x34 #x12)
+        ))
+
+   (test-assert "Dictionary Encode Empty"
+        (wyrm.blob-eq?
+            (wyrm.encode-dict test-encode-dict0 test-encode-dict0-encoding)
+            (wyrm.blob-flatten)))
+
+    (test-assert "LE Dictionary Encode"
+        (wyrm.blob-eq?
+            (wyrm.encode-dict test-encode-dict1 test-encode-dict1-encoding)
+            (wyrm.blob-flatten 42)))
+
+    (test-assert "LE Dictionary Encode Multi-Type"
+        (wyrm.blob-eq?
+            (wyrm.encode-dict test-encode-dict2 test-encode-dict2-encoding)
+            (wyrm.blob-flatten 42 #xff 0)))
+
+    (test-assert "LE Dictionary Encode Subs"
+        (wyrm.blob-eq?
+            (wyrm.encode-dict test-encode-dict3 test-encode-dict3-encoding)
+            (wyrm.blob-flatten 42)))
+
+    (test-assert "Dict0 is encoding" (wyrm.encode-field-set? test-encode-dict0-encoding))
+    (test-assert "Dict1 is encoding" (wyrm.encode-field-set? test-encode-dict1-encoding))
+    (test-assert "Dict2 is encoding" (wyrm.encode-field-set? test-encode-dict2-encoding))
+    (test-assert "Dict3 is encoding" (wyrm.encode-field-set? test-encode-dict3-encoding))
+
+    (test "Dictionary Size Empty" 0 (wyrm.encode-dict-size test-encode-dict0 test-encode-dict0-encoding))
+    (test "Dictionary Size Single" 1 (wyrm.encode-dict-size test-encode-dict1 test-encode-dict1-encoding))
+    (test "Dictionary Size Multi" 3 (wyrm.encode-dict-size test-encode-dict2 test-encode-dict2-encoding))
 )

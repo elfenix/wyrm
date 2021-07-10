@@ -39,6 +39,11 @@
 (define (wyrm.dict-set self key value)
   `(wyrm.dict . ,(cons `(,key . ,value) (cdr self))))
 
+(define (wyrm.dict-update self key-values)
+  (if (pair? key-values)
+      (wyrm.dict-update (wyrm.dict-set self (caar key-values) (cdar key-values)) (cdr key-values))
+      self))
+
 ;;; Blob API
 ;;;     wyrm.blob
 ;;;         -new sz: Build blob with sz in bytes
@@ -189,6 +194,87 @@
         (close-input-port binfile)
         (string->wyrm.blob bincontents)
     ))
+
+
+;;; ---------------------------------------------------------------------------
+;;; Binary Data Encoding
+;;; ---------------------------------------------------------------------------
+
+(define (wyrm.u8 n) (%_wrt.and n 255))
+(define (wyrm.u16 n) `(,(wyrm.u8 n) ,(wyrm.u8 (%_wrt.shift n -8))))
+(define (wyrm.u32 n) (append (wyrm.u16 n) (wyrm.u16 (%_wrt.shift n -16))))
+(define (wyrm.u64 n) (append (wyrm.u32 n) (wyrm.u32 (%_wrt.shift n -32))))
+
+(define (wyrm.encode-u8 self) (wyrm.blob-flatten (wyrm.u8 self)))
+(define (wyrm.encode-u16 self) (wyrm.blob-flatten (wyrm.u16 self)))
+(define (wyrm.encode-u32 self) (wyrm.blob-flatten (wyrm.u32 self)))
+(define (wyrm.encode-u64 self) (wyrm.blob-flatten (wyrm.u64 self)))
+
+(define (wyrm.encode-field-substruct? ll)
+    (and (pair? ll)
+         (and (pair? (car ll))
+              (eq? (caar ll) 'substruct))))
+
+(define (wyrm.encode-field? ll)
+    (and (pair? ll)
+         (or (procedure? (car ll))
+             (eq? (car ll) 'u8)
+             (eq? (car ll) 'u16)
+             (eq? (car ll) 'u32)
+             (eq? (car ll) 'u64)
+             (wyrm.encode-field-substruct? ll))))
+
+(define (wyrm.encode-field-set? ll)
+    (and (list? ll)
+         (if (pair? ll)
+             (and (wyrm.encode-field? (car ll)) (wyrm.encode-field-set? (cdr ll)))
+              #t)))
+
+(define (%wyrm.encode-dict-field self field-info)
+    (cond
+        ((procedure? (car field-info))
+            ((car field-info) (wyrm.dict-get self (cdr field-info))))
+        ((wyrm.encode-field-substruct? field-info)
+            (wyrm.encode-dict (wyrm.dict-get self (cdr field-info))
+                              (cdar field-info)))
+        ((eq? (car field-info) 'u8) (wyrm.encode-u8 (wyrm.dict-get self (cdr field-info))))
+        ((eq? (car field-info) 'u16) (wyrm.encode-u16 (wyrm.dict-get self (cdr field-info))))
+        ((eq? (car field-info) 'u32) (wyrm.encode-u32 (wyrm.dict-get self (cdr field-info))))
+        ((eq? (car field-info) 'u64) (wyrm.encode-u64 (wyrm.dict-get self (cdr field-info))))
+        (#t (wyrm.abort "Unknown encoding field specification"))))
+
+(define (%wyrm.encode-dict-fields self fields)
+    (if (pair? fields)
+        (cons (%wyrm.encode-dict-field self (car fields)) (%wyrm.encode-dict-fields self (cdr fields)))
+        '()))
+
+(define (wyrm.encode-dict self fields)
+    (if (wyrm.encode-field-set? fields)
+        (wyrm.blob-flatten (%wyrm.encode-dict-fields self fields))
+        (wyrm.abort "Invalid dictionary encoding specification to encode request")))
+
+(define wyrm.encode-functions (list wyrm.encode-u8 wyrm.encode-u16 wyrm.encode-u32 wyrm.encode-u64 wyrm.encode-dict))
+
+
+(define (%wyrm.encode-dict-size-field self field-info)
+    (cond
+        ((eq? (car field-info) wyrm.encode-u8) 1)
+        ((eq? (car field-info) wyrm.encode-u16) 2)
+        ((eq? (car field-info) wyrm.encode-u32) 4)
+        ((eq? (car field-info) wyrm.encode-u64) 8)
+        ((eq? (car field-info) 'u8) 1)
+        ((eq? (car field-info) 'u16) 2)
+        ((eq? (car field-info) 'u32) 4)
+        ((eq? (car field-info) 'u64) 8)
+        ((wyrm.encode-field-substruct? field-info) (wyrm.encode-dict-size (wyrm.dict-get self (cdr field-info)) (cdar field-info)))
+        (procedure? (wyrm.blob-size (%wyrm.encode-dict-field self field-info)))
+        (#t (wyrm.abort "Invalid dictionary encoding field specification"))
+    ))
+
+(define (wyrm.encode-dict-size self fields)
+    (if (pair? fields)
+        (+ (%wyrm.encode-dict-size-field self (car fields)) (wyrm.encode-dict-size self (cdr fields)))
+        0))
 
 
 ;;; ---------------------------------------------------------------------------
