@@ -2,5 +2,5 @@
 
 (import (chicken load))
 
-(load-relative "csi-bootstrap.scm")
+(load-relative "bootstrap-csi.scm")
 (wyrm.include "wyrm-main.scm")

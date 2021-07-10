@@ -3,7 +3,7 @@
 (import (chicken file))
 (import (chicken load))
 
-(load-relative "csi-bootstrap.scm")
+(load-relative "bootstrap-csi.scm")
 
 ;; Setup test environment
 (define test-dir-name "csi-bootstrap-test-data")
