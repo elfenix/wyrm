@@ -112,3 +112,32 @@
 (define (rt-elf.elf-header? self)
   (eq? (wyrm.dict-get self '_type) 'rt-elf.elf-header))
 
+
+;;; ---------------------------------------------------------------------------
+;;; Elf String Table
+;;; ---------------------------------------------------------------------------
+
+(define (rt-elf.str-table n) (cons 'rt-elf.str-table n))
+(define (rt-elf.str-table? n) (eq? (car n) 'rt-elf.str-table))
+(define (rt-elf.str-table-length n) (length (cdr n)))
+(define (rt-elf.str-table-item n k) (list-ref (cdr n) k))
+(define (%rt-elf.str-table-str_sz n) (+ (string-length n) 1))
+(define (%rt-elf.str-table-item_offset n k)
+    (let ((prev_k (- k 1)))
+        (if (zero? k)
+            0
+            (+ (%rt-elf.str-table-str_sz (rt-elf.str-table-item n prev_k))
+               (%rt-elf.str-table-item_offset n prev_k)))))
+(define (rt-elf.str-table-sz n) (%rt-elf.str-table-item_offset n (rt-elf.str-table-length n)))
+
+(define (%rt-elf.str-table-encode-part ll)
+  (if (pair? ll)
+      (wyrm.blob-flatten (string->wyrm.blob (car ll))
+                         #x00
+                         (%rt-elf.str-table-encode-part (cdr ll)))
+      (wyrm.blob)))
+
+(define (rt-elf.str-table-encode self)
+  (if (rt-elf.str-table? self)
+      (%rt-elf.str-table-encode-part (cdr self))
+      (wyrm.abort "rt-elf.str-table-encode expected str-table")))

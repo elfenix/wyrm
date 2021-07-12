@@ -83,3 +83,52 @@
             (wyrm.encode-dict demo-elf-header rt-elf.elf-header64-encoding)
             demo-elf-header-encoded))
 )
+
+
+; String Table Tests
+; ------------------
+(define demo-str-table (rt-elf.str-table
+    '("ELF"
+      "File"
+      "Format"
+      "Is"
+      "Awesome")))
+
+(define demo-str-table2 (rt-elf.str-table
+    '("1234"
+      "6789")))
+
+(define demo-str-table3-encoded (wyrm.blob
+                   #x00 #x2e #x73 #x68 #x73
+    #x74 #x72 #x74 #x61 #x62 #x00 #x2e #x6e
+    #x6f #x74 #x65 #x2e #x67 #x6e #x75 #x2e
+    #x62 #x75 #x69 #x6c #x64 #x2d #x69 #x64
+    #x00 #x2e #x74 #x65 #x78 #x74 #x00 #x2e
+    #x72 #x6f #x64 #x61 #x74 #x61 #x00
+))
+
+(define demo-str-table3 (rt-elf.str-table
+   '(""
+     ".shstrtab"
+     ".note.gnu.build-id"
+     ".text"
+     ".rodata")))
+
+;;; String Table
+(test-group "elf string table"
+    (test-assert "Create new string table"
+        (rt-elf.str-table? (rt-elf.str-table '())))
+    (test "Length of string table"
+        5 (rt-elf.str-table-length demo-str-table))
+    (test "Size of string table memory"
+        10 (rt-elf.str-table-sz demo-str-table2))
+    (test "Grab Element 0"
+        "ELF" (rt-elf.str-table-item demo-str-table 0))
+    (test "Grab Element 1"
+        "6789" (rt-elf.str-table-item demo-str-table2 1))
+    (test-assert "Encoded String Table"
+        (wyrm.blob-eq?
+            demo-str-table3-encoded
+            (rt-elf.str-table-encode demo-str-table3)
+        ))
+)
