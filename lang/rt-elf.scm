@@ -13,6 +13,7 @@
 
 (define rt-elf.elf64-half wyrm.encode-u16)
 (define rt-elf.elf64-word wyrm.encode-u32)
+(define rt-elf.elf64-xword wyrm.encode-u64)
 (define rt-elf.elf64-addr wyrm.encode-u64)
 (define rt-elf.elf64-off wyrm.encode-u64)
 
@@ -141,3 +142,60 @@
   (if (rt-elf.str-table? self)
       (%rt-elf.str-table-encode-part (cdr self))
       (wyrm.abort "rt-elf.str-table-encode expected str-table")))
+
+;;; ---------------------------------------------------------------------------
+;;; Elf Section Header
+;;; ---------------------------------------------------------------------------
+
+
+;;; Define encoding method for the 64-bit elf file header
+(define rt-elf.section-default
+  `((_type . rt-elf.elf-section)
+    (name_idx . #f)                 ; Index of name in section table
+    (type . #f)                     ; Section type
+    (flags . #f)                    ; Section attributes
+    (addr . #f)                     ; Virtual base address
+    (offset . #f)                   ; Offset in file
+    (size . #f)                     ; Size of the section
+    (link . #f)                     ; Link to other section (specific to type)
+    (info . #f)                     ; Information (specific to type)
+    (align . #f)                    ; Alignment
+    (entsize . #f)                  ; Entity size (if section has table)
+   ))
+
+(define rt-elf.section64-encoding
+  `((,rt-elf.elf64-word . name_idx)
+    (,rt-elf.elf64-word . type)
+    (,rt-elf.elf64-xword . flags)
+    (,rt-elf.elf64-addr . addr)
+    (,rt-elf.elf64-off . offset)
+    (,rt-elf.elf64-xword . size)
+    (,rt-elf.elf64-word . link)
+    (,rt-elf.elf64-word . info)
+    (,rt-elf.elf64-xword . align)
+    (,rt-elf.elf64-xword . entsize)
+   ))
+
+
+(define rt-elf.SHT_NULL 0)          ; Unused section
+(define rt-elf.SHT_PROGBITS 1)      ; Defined by program
+(define rt-elf.SHT_SYMTAB 2)        ; Symbol table
+(define rt-elf.SHT_STRTAB 3)        ; String table
+(define rt-elf.SHT_RELA 4)          ; "Rela" relocation entries
+(define rt-elf.SHT_HASH 5)          ; Hash table
+(define rt-elf.SHT_DYNAMIC 6)       ; Dynaminc link entries
+(define rt-elf.SHT_NOTE 7)          ; Note information
+(define rt-elf.SHT_NOBITS 8)        ; Uninitialize space
+(define rt-elf.SHT_REL 9)           ; "REL" relocation entries
+(define rt-elf.SHT_SHLIB 10)        ; Reserved
+(define rt-elf.SHT_DYNSYM 11)       ; Dynamic loader entries
+
+(define rt-elf.SHF_WRITE #x01)      ; Writeable data
+(define rt-elf.SHF_ALLOC #x02)      ; Allocate memory
+(define rt-elf.SHF_EXEC  #x04)      ; Executable instructions
+
+(define (rt-elf.section-new . T)
+  (wyrm.dict-update (apply wyrm.dict-new rt-elf.section-default) T))
+
+(define (rt-elf.section? self)
+  (eq? (wyrm.dict-get self '_type) 'rt-elf.elf-section))

@@ -132,3 +132,40 @@
             (rt-elf.str-table-encode demo-str-table3)
         ))
 )
+
+;; Section Header Tests
+;; --------------------
+
+(define demo-text-section-encoded (wyrm.blob
+    #x1e #x00 #x00 #x00 #x01 #x00 #x00 #x00
+    #x06 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+    #x00 #x10 #x40 #x00 #x00 #x00 #x00 #x00
+    #x00 #x10 #x00 #x00 #x00 #x00 #x00 #x00
+    #x27 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+    #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+    #x10 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+    #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00))
+
+(define demo-text-section
+    (rt-elf.section-new
+        `(name_idx . #x0000001e)
+        `(type . ,rt-elf.SHT_PROGBITS)
+        `(flags . ,(+ rt-elf.SHF_ALLOC rt-elf.SHF_EXEC))
+        `(addr . #x0000000000401000)
+        `(offset . #x00001000)
+        `(size . #x0000000000000027)
+        `(entsize . #x0)
+        `(link . #x0)
+        `(info . #x0)
+        `(align . 16)
+))
+
+
+(test-group "elf section header"
+    (test-assert "Create new section header"
+        (rt-elf.section? (rt-elf.section-new)))
+    (test-assert "Blob matches recorded header"
+        (wyrm.blob-eq?
+            (wyrm.encode-dict demo-text-section rt-elf.section64-encoding)
+            demo-text-section-encoded))
+)
