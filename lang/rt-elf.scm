@@ -147,8 +147,7 @@
 ;;; Elf Section Header
 ;;; ---------------------------------------------------------------------------
 
-
-;;; Define encoding method for the 64-bit elf file header
+;;; Define encoding method for the 64-bit elf section header
 (define rt-elf.section-default
   `((_type . rt-elf.elf-section)
     (name_idx . #f)                 ; Index of name in section table
@@ -199,3 +198,50 @@
 
 (define (rt-elf.section? self)
   (eq? (wyrm.dict-get self '_type) 'rt-elf.elf-section))
+
+;;; ---------------------------------------------------------------------------
+;;; Elf Program Header
+;;; ---------------------------------------------------------------------------
+
+(define rt-elf.PT_NULL 0)         ; Unused entry
+(define rt-elf.PT_LOAD 1)         ; Loadable segment
+(define rt-elf.PT_DYNAMIC 2)      ; Dynamic linker table
+(define rt-elf.PT_INTERP 3)       ; Program interpreter
+(define rt-elf.PT_NOTE 4)         ; Note section
+(define rt-elf.PT_SHLIB 5)        ; Reserved(?)
+(define rt-elf.PT_PHDR 6)         ; Program header table
+
+(define rt-elf.PF_X 1)            ; Execute permission
+(define rt-elf.PF_W 2)            ; Writeable
+(define rt-elf.PF_R 4)            ; Readable
+
+;;; Define encoding method for the 64-bit elf section header
+(define rt-elf.program-header-default
+  `((_type . rt-elf.elf-program-header)
+    (type . #f)                     ; Segment type
+    (flags . #f)                    ; Segment attributes
+    (offset . #f)                   ; Offset in file
+    (vaddr . #f)                    ; Virtual base address
+    (paddr . #f)                    ; Physical base address
+    (file_size . #f)                ; Size of segment data in file
+    (mem_size . #f)                 ; Size of segment in memory
+    (align . #f)                    ; Alignment
+   ))
+
+(define rt-elf.program-header64-encoding
+  `((,rt-elf.elf64-word . type)
+    (,rt-elf.elf64-word . flags)
+    (,rt-elf.elf64-off . offset)
+    (,rt-elf.elf64-addr . vaddr)
+    (,rt-elf.elf64-addr . paddr)
+    (,rt-elf.elf64-xword . file_size)
+    (,rt-elf.elf64-xword . mem_size)
+    (,rt-elf.elf64-xword . align)
+   ))
+
+(define (rt-elf.program-header-new . T)
+  (wyrm.dict-update (apply wyrm.dict-new rt-elf.program-header-default) T))
+
+(define (rt-elf.program-header? self)
+  (eq? (wyrm.dict-get self '_type) 'rt-elf.elf-program-header))
+

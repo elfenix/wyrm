@@ -169,3 +169,38 @@
             (wyrm.encode-dict demo-text-section rt-elf.section64-encoding)
             demo-text-section-encoded))
 )
+
+
+;; Program Header Tests
+;; --------------------
+
+(define demo-exec-program-encoded (wyrm.blob
+    #x01 #x00 #x00 #x00 #x05 #x00 #x00 #x00
+    #x00 #x10 #x00 #x00 #x00 #x00 #x00 #x00
+    #x00 #x10 #x40 #x00 #x00 #x00 #x00 #x00
+    #x00 #x10 #x40 #x00 #x00 #x00 #x00 #x00
+    #x27 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+    #x27 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+    #x00 #x10 #x00 #x00 #x00 #x00 #x00 #x00))
+
+(define demo-exec-program
+    (rt-elf.program-header-new
+        `(type . ,rt-elf.PT_LOAD)
+        `(offset . #x0000000000001000)
+        `(vaddr . #x0000000000401000)
+        `(paddr . #x0000000000401000)
+        `(file_size . #x0000000000000027)
+        `(mem_size . #x0000000000000027)
+        `(flags . ,(+ rt-elf.PF_X rt-elf.PF_R))
+        `(align . #x1000)
+))
+
+(test-group "elf section header"
+    (test-assert "Create new program header"
+        (rt-elf.program-header? (rt-elf.program-header-new)))
+    (test-assert "Encode matches elf sample"
+        (wyrm.blob-eq?
+            (wyrm.encode-dict demo-exec-program rt-elf.program-header64-encoding)
+            demo-exec-program-encoded
+         ))
+)
