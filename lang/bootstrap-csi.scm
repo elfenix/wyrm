@@ -65,6 +65,13 @@
     (define thiz_u8 (blob->u8vector/shared thiz_blob))
     (_wyrm.blob-make thiz_blob thiz_u8))
 
+(define (wyrm.blob-new-zero sz)
+    (begin
+        (define self (wyrm.blob-new sz))
+        (wyrm.blob-fill! self #x00)
+        self
+    ))
+
 (define (wyrm.blob . T)
     (begin
         (define thiz_blob (wyrm.blob-new (length T)))
@@ -165,6 +172,18 @@
 
 (define (wyrm.blob-size self)
     (blob-size (_wyrm.blob-blob self)))
+
+(define (wyrm.blob-fill! self value)
+    (define count (wyrm.blob-size self))
+    (define (fill-iter! offset)
+        (if (< offset count)
+            (begin
+                (wyrm.blob-pokeb! self offset value)
+                (fill-iter! (+ offset 1)))
+            offset)
+        )
+    (fill-iter! 0)
+)
 
 (define (wyrm.blob-set-list! self offset ll)
    (if (pair? ll)

@@ -204,3 +204,42 @@
             demo-exec-program-encoded
          ))
 )
+
+;; Segment Data Tests
+;; --------------------
+
+(define demo-exec-text-bin (wyrm.blob
+  #xb8 #x01 #x00 #x00 #x00              ; mov    $0x1,%eax
+  #xbf #x01 #x00 #x00 #x00              ; mov    $0x1,%edi
+  #x48 #xbe #x00 #x20 #x40 #x00 #x00    ; movabs $0x402000,%rsi
+  #x00 #x00 #x00
+  #xba #x0b #x00 #x00 #x00              ; mov    $0xb,%edx
+  #x0f #x05                             ; syscall
+  #xb8 #x3c #x00 #x00 #x00              ; mov    $0x3c,%eax
+  #xbf #x00 #x00 #x00 #x00              ; mov    $0x0,%edi
+  #x0f #x05                             ; syscall
+))
+
+(define demo-exec-text-segment (rt-elf.segment-data-new demo-exec-text-bin))
+
+(test-group "elf segment data"
+    (test-assert "Create Alignment 1024"
+        (rt-elf.align? (rt-elf.align 1024)))
+    (test-assert "Create new segment data"
+        (rt-elf.segment-data? (rt-elf.segment-data-new)))
+    (test-assert "Identity encode"
+        (wyrm.blob-eq?
+            demo-exec-text-bin
+            (rt-elf.segment-encode demo-exec-text-segment #x1000)
+        ))
+    (test-assert "4 byte alignment"
+        (wyrm.blob-eq?
+            (wyrm.blob-flatten #x1 #x0 #x0 #x0)
+            (rt-elf.segment-encode (rt-elf.segment-data-new
+                (wyrm.blob-flatten #x1)
+                (rt-elf.align 4))
+              #x0)
+        ))
+    (test-error "Invalid segment data"
+        (rt-elf.segment-encode (rt-elf.segment-data-new 'junk)))
+)

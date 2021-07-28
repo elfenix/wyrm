@@ -7,4 +7,5 @@
 .#*.scm
 
 **/csi-bootstrap-test-data
+test.hello-world.x86
 

@@ -55,6 +55,21 @@
     (test "Blob Flatten Hello World" "A Hello A World"
         (wyrm.blob->string (wyrm.blob-flatten ascii-A " Hello " (list ascii-A (list " ") (string->wyrm.blob "World")))))
 
+    (test-assert "Blob Zero Create"
+        (wyrm.blob-eq?
+            (wyrm.blob-flatten #x0 #x0 #x0 #x0)
+            (wyrm.blob-new-zero 4)
+         ))
+
+    (test-assert "Blob Fill"
+        (wyrm.blob-eq?
+            (let ((x (wyrm.blob-flatten #x1 #x2 #x3 #x4)))
+                (begin
+                    (wyrm.blob-fill! x #xff)
+                    x))
+            (wyrm.blob-flatten #xff #xff #xff #xff)
+         ))
+
     (test-assert "Internal blob create works" (_wyrm.blob? (_wyrm.blob-make #f #f)))
     (test-assert "Public API blob create" (wyrm.blob? (wyrm.blob-new 32)))
     (test "Blob size matches" 32 (wyrm.blob-size (wyrm.blob-new 32)))

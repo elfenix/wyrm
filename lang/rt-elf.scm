@@ -245,3 +245,43 @@
 (define (rt-elf.program-header? self)
   (eq? (wyrm.dict-get self '_type) 'rt-elf.elf-program-header))
 
+;;; ---------------------------------------------------------------------------
+;;; Segment Data
+;;; ---------------------------------------------------------------------------
+
+(define (rt-elf.segment-data-new . T)
+  (cons 'rt-elf.segment-data T))
+
+(define (rt-elf.segment-data? self)
+  (and (pair? self) (eq? (car self) 'rt-elf.segment-data)))
+
+(define (rt-elf.align count) `(rt-elf.align . ,count))
+(define (rt-elf.align? self)
+  (and (pair? self) (eq? (car self) 'rt-elf.align)))
+
+(define (rt-elf.segment-encode self offset)
+  (define (encode-align offset sec)
+    (define align (cdr sec))
+    (define padding (modulo (- align (modulo offset align)) align))
+      (wyrm.blob-new-zero padding)
+    )
+
+  (define (encode-section offset sec)
+    (cond
+      ((wyrm.blob? sec) sec)
+      ((rt-elf.align? sec) (encode-align offset sec))
+      (#t wyrm.abort "rt-elf.segment-encode unknown section type")
+    ))
+
+  (define (encode-sections offset ll)
+    (if (pair? ll)
+        (let ((local-section (encode-section offset (car ll))))
+          (cons local-section
+                (encode-sections (+ offset (wyrm.blob-size local-section))
+                                 (cdr ll)))
+         )
+        '()
+    ))
+
+  (wyrm.blob-flatten (encode-sections offset (cdr self)))
+)
